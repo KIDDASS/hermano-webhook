@@ -11,17 +11,37 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK_URL;
+  // Get the webhook type from the request
+  const { webhookType, ...discordPayload } = req.body;
+  
+  // Choose the correct webhook based on type
+  let DISCORD_WEBHOOK;
+  if (webhookType === 'announcement') {
+    DISCORD_WEBHOOK = process.env.ANNOUNCEMENT_WEBHOOK_URL;
+  } else if (webhookType === 'security') {
+    DISCORD_WEBHOOK = process.env.SECURITY_WEBHOOK_URL;
+  } else {
+    return res.status(400).json({ error: 'Invalid webhook type' });
+  }
+
+  if (!DISCORD_WEBHOOK) {
+    return res.status(500).json({ error: 'Webhook not configured' });
+  }
 
   try {
     const response = await fetch(DISCORD_WEBHOOK, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body),
+      body: JSON.stringify(discordPayload),
     });
+
+    if (!response.ok) {
+      throw new Error(`Discord API error: ${response.status}`);
+    }
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    return res.status(500).json({ error: 'Failed' });
+    console.error('Webhook error:', error);
+    return res.status(500).json({ error: 'Failed to send webhook' });
   }
 }
