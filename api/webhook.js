@@ -1,8 +1,15 @@
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // ✅ Only allow requests from your InfinityFree domain
+  const allowedOrigin = 'https://herma.likesyou.org';
 
+  if (req.headers.origin === allowedOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+  }
+
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // --- Handle preflight ---
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -11,10 +18,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Get the webhook type from the request
+  // --- Parse webhook type ---
   const { webhookType, ...discordPayload } = req.body;
-  
-  // Choose the correct webhook based on type
+
   let DISCORD_WEBHOOK;
   if (webhookType === 'announcement') {
     DISCORD_WEBHOOK = process.env.ANNOUNCEMENT_WEBHOOK_URL;
